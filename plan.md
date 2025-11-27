@@ -11,7 +11,7 @@ A Next.js web application that analyzes and recommends investments across Indian
 - **Framework**: Next.js 16 (latest stable, App Router) for Vercel deployment
 - **Styling**: Tailwind CSS for modern UI
 - **Data Sources**: 
-  - US Stocks: Alpha Vantage API (free tier)
+  - US Stocks: IEX Cloud API (free tier: 100,000 messages/month)
   - Indian Stocks: Yahoo Finance API (via yfinance library or API)
   - Cryptocurrency: CoinGecko API (free tier)
 - **Technical Analysis**: Custom calculations + `technicalindicators` library
@@ -43,7 +43,7 @@ A Next.js web application that analyzes and recommends investments across Indian
 │   └── globals.css             # Global styles
 ├── lib/
 │   ├── data/
-│   │   ├── alphaVantage.ts     # Alpha Vantage API client
+│   │   ├── iexCloud.ts         # IEX Cloud API client
 │   │   ├── yahooFinance.ts     # Yahoo Finance API client
 │   │   └── coinGecko.ts        # CoinGecko API client
 │   ├── analysis/
@@ -71,7 +71,7 @@ A Next.js web application that analyzes and recommends investments across Indian
 
 ### Data Fetching (`lib/data/`)
 
-- **Alpha Vantage**: Fetch US stock data (daily, weekly) with rate limiting
+- **IEX Cloud**: Fetch US stock data (historical charts, real-time quotes) with rate limiting
 - **Yahoo Finance**: Fetch Indian stock data (NSE/BSE symbols)
 - **CoinGecko**: Fetch crypto prices, market data, and historical data
 
@@ -129,7 +129,7 @@ Calculate indicators:
 
 ## Configuration
 
-- Environment variables for API keys (Alpha Vantage, CoinGecko)
+- Environment variables for API keys (IEX Cloud, CoinGecko)
 - Rate limiting configuration for free API tiers
 - Caching strategy to minimize API calls
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchUSStockData, getUSStockQuote } from '@/lib/data/alphaVantage';
+import { fetchUSStockData, getUSStockQuote } from '@/lib/data/iexCloud';
 import { calculateTechnicalIndicators } from '@/lib/analysis/technicalIndicators';
 import { calculateMomentumScore } from '@/lib/analysis/momentum';
 import { analyzeTrend } from '@/lib/analysis/trends';
@@ -21,7 +21,7 @@ const US_STOCKS = [
   { symbol: 'JNJ', name: 'Johnson & Johnson' },
 ];
 
-// Rate limiting: Free tier allows 5 calls per minute
+// Rate limiting: Free tier allows 60 calls per minute
 // Add delay between API calls to respect rate limits
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -35,17 +35,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ asset });
     } else {
       // Analyze multiple stocks
-      // Free tier: 5 calls per minute, so we'll process 3 stocks with delays
+      // Free tier: 100,000 messages/month, so we can process many stocks
       const assets: Asset[] = [];
-      const stocksToAnalyze = US_STOCKS.slice(0, 3); // Limit to 3 to avoid rate limits
+      const stocksToAnalyze = US_STOCKS.slice(0, 10); // Process up to 10 stocks
       
       for (let i = 0; i < stocksToAnalyze.length; i++) {
         const stock = stocksToAnalyze[i];
         try {
-          // Add delay between calls (except for the first one)
-          // 15 seconds delay = 4 calls per minute (safe margin)
+          // Add small delay between calls to respect rate limits
+          // IEX Cloud free tier is generous, but we'll add a small delay
           if (i > 0) {
-            await delay(15000); // 15 seconds between calls
+            await delay(500); // 0.5 second between calls
           }
           
           const asset = await analyzeStock(stock.symbol, stock.name);
@@ -79,7 +79,7 @@ async function analyzeStock(symbol: string, name?: string): Promise<Asset> {
     getUSStockQuote(symbol).catch(() => null),
   ]);
 
-  // Free tier provides ~100 data points, which is sufficient for analysis
+  // IEX Cloud provides 1 year of historical data, which is sufficient for analysis
   if (priceData.length < 20) {
     throw new Error(`Insufficient data for ${symbol}. Got ${priceData.length} data points, need at least 20.`);
   }

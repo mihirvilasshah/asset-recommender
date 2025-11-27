@@ -38,13 +38,13 @@ cp .env.local.example .env.local
 
 Edit `.env.local` and add your API keys:
 ```
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
+IEX_CLOUD_API_KEY=your_iex_cloud_api_key_here
 COINGECKO_API_KEY=your_coingecko_api_key_here (optional)
 ```
 
 ### Getting API Keys
 
-- **Alpha Vantage**: Get a free API key at [https://www.alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key)
+- **IEX Cloud**: Get a free API key at [https://iexcloud.io/console/](https://iexcloud.io/console/) (Free tier: 100,000 messages/month)
 - **CoinGecko Demo API**: 
   - Sign up for a free CoinGecko account at [https://www.coingecko.com/en/api](https://www.coingecko.com/en/api)
   - Navigate to the [Developer's Dashboard](https://www.coingecko.com/en/developers/dashboard)
@@ -72,7 +72,7 @@ npm start
 1. Push your code to GitHub
 2. Import your repository in [Vercel](https://vercel.com)
 3. Add environment variables in Vercel dashboard:
-   - `ALPHA_VANTAGE_API_KEY`
+   - `IEX_CLOUD_API_KEY`
    - `COINGECKO_API_KEY` (optional)
 4. Deploy!
 
