@@ -36,12 +36,18 @@ export async function fetchUSStockData(symbol: string): Promise<PriceData[]> {
         function: 'TIME_SERIES_DAILY',
         symbol: symbol,
         apikey: API_KEY,
-        outputsize: 'full',
+        outputsize: 'compact', // Free tier only supports 'compact' (latest 100 data points)
+        datatype: 'json',
       },
     });
 
+    // Check for rate limit or API key issues
     if (response.data['Note']) {
-      throw new Error('API rate limit exceeded. Please try again later.');
+      const note = response.data['Note'];
+      if (note.includes('API call frequency') || note.includes('Thank you for using Alpha Vantage')) {
+        throw new Error('API rate limit exceeded. Free tier allows 5 calls per minute and 500 per day. Please try again later.');
+      }
+      throw new Error(note);
     }
 
     if (response.data['Error Message']) {
@@ -50,7 +56,8 @@ export async function fetchUSStockData(symbol: string): Promise<PriceData[]> {
 
     const timeSeries = response.data['Time Series (Daily)'];
     if (!timeSeries) {
-      throw new Error('No data available for this symbol');
+      console.error('Response data:', JSON.stringify(response.data, null, 2));
+      throw new Error(`No time series data available for symbol ${symbol}. Please check if the symbol is correct.`);
     }
 
     const priceData: PriceData[] = Object.entries(timeSeries)
@@ -64,10 +71,17 @@ export async function fetchUSStockData(symbol: string): Promise<PriceData[]> {
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    if (priceData.length === 0) {
+      throw new Error(`No price data found for symbol ${symbol}`);
+    }
+
     cache.set(cacheKey, { data: priceData, timestamp: Date.now() });
     return priceData;
   } catch (error) {
     console.error(`Error fetching US stock data for ${symbol}:`, error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error details:', error.response?.data);
+    }
     throw error;
   }
 }
@@ -84,22 +98,40 @@ export async function getUSStockQuote(symbol: string): Promise<{
         function: 'GLOBAL_QUOTE',
         symbol: symbol,
         apikey: API_KEY,
+        datatype: 'json',
       },
     });
 
+    // Check for rate limit or API key issues
+    if (response.data['Note']) {
+      const note = response.data['Note'];
+      if (note.includes('API call frequency') || note.includes('Thank you for using Alpha Vantage')) {
+        throw new Error('API rate limit exceeded. Please try again later.');
+      }
+      throw new Error(note);
+    }
+
+    if (response.data['Error Message']) {
+      throw new Error(response.data['Error Message']);
+    }
+
     const quote = response.data['Global Quote'];
-    if (!quote) {
-      throw new Error('No quote data available');
+    if (!quote || Object.keys(quote).length === 0) {
+      console.error('Response data:', JSON.stringify(response.data, null, 2));
+      throw new Error(`No quote data available for symbol ${symbol}`);
     }
 
     return {
-      symbol: quote['01. symbol'],
-      price: parseFloat(quote['05. price']),
-      change: parseFloat(quote['09. change']),
-      changePercent: parseFloat(quote['10. change percent'].replace('%', '')),
+      symbol: quote['01. symbol'] || symbol,
+      price: parseFloat(quote['05. price'] || '0'),
+      change: parseFloat(quote['09. change'] || '0'),
+      changePercent: parseFloat((quote['10. change percent'] || '0%').replace('%', '')),
     };
   } catch (error) {
     console.error(`Error fetching quote for ${symbol}:`, error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error details:', error.response?.data);
+    }
     throw error;
   }
 }

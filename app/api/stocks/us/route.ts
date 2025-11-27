@@ -21,6 +21,10 @@ const US_STOCKS = [
   { symbol: 'JNJ', name: 'Johnson & Johnson' },
 ];
 
+// Rate limiting: Free tier allows 5 calls per minute
+// Add delay between API calls to respect rate limits
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export async function GET(request: NextRequest) {
   try {
     const symbol = request.nextUrl.searchParams.get('symbol');
@@ -31,14 +35,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ asset });
     } else {
       // Analyze multiple stocks
+      // Free tier: 5 calls per minute, so we'll process 3 stocks with delays
       const assets: Asset[] = [];
+      const stocksToAnalyze = US_STOCKS.slice(0, 3); // Limit to 3 to avoid rate limits
       
-      for (const stock of US_STOCKS.slice(0, 5)) { // Limit to 5 to avoid rate limits
+      for (let i = 0; i < stocksToAnalyze.length; i++) {
+        const stock = stocksToAnalyze[i];
         try {
+          // Add delay between calls (except for the first one)
+          // 15 seconds delay = 4 calls per minute (safe margin)
+          if (i > 0) {
+            await delay(15000); // 15 seconds between calls
+          }
+          
           const asset = await analyzeStock(stock.symbol, stock.name);
           assets.push(asset);
         } catch (error) {
           console.error(`Error analyzing ${stock.symbol}:`, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error(`Error details: ${errorMessage}`);
           // Continue with other stocks
         }
       }
@@ -50,8 +65,9 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error in US stocks API:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to fetch US stock data' },
+      { error: 'Failed to fetch US stock data', details: errorMessage },
       { status: 500 }
     );
   }
@@ -63,8 +79,9 @@ async function analyzeStock(symbol: string, name?: string): Promise<Asset> {
     getUSStockQuote(symbol).catch(() => null),
   ]);
 
-  if (priceData.length < 200) {
-    throw new Error(`Insufficient data for ${symbol}`);
+  // Free tier provides ~100 data points, which is sufficient for analysis
+  if (priceData.length < 20) {
+    throw new Error(`Insufficient data for ${symbol}. Got ${priceData.length} data points, need at least 20.`);
   }
 
   const technicalIndicators = calculateTechnicalIndicators(priceData);
