@@ -30,16 +30,23 @@ export async function GET(request: NextRequest) {
     if (!assetType || assetType === 'indian_stock') {
       try {
         const indiaResponse = await fetch(`${request.nextUrl.origin}/api/stocks/india`);
+        const indiaData = await indiaResponse.json();
+        
         if (indiaResponse.ok) {
-          const indiaData = await indiaResponse.json();
-          if (indiaData.assets) {
+          if (indiaData.assets && Array.isArray(indiaData.assets) && indiaData.assets.length > 0) {
             allAssets.push(...indiaData.assets);
           } else if (indiaData.asset) {
             allAssets.push(indiaData.asset);
+          } else {
+            console.warn('Indian stocks API returned empty or invalid data:', indiaData);
           }
+        } else {
+          console.error(`Indian stocks API returned error status ${indiaResponse.status}:`, indiaData);
         }
       } catch (error) {
         console.error('Error fetching Indian stocks:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error details:', errorMessage);
       }
     }
 

@@ -38,9 +38,23 @@ export async function GET(request: NextRequest) {
           const asset = await analyzeStock(stock.symbol, stock.name);
           assets.push(asset);
         } catch (error) {
-          console.error(`Error analyzing ${stock.symbol}:`, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error(`Error analyzing ${stock.symbol}:`, errorMessage);
+          console.error('Full error:', error);
           // Continue with other stocks
         }
+      }
+
+      if (assets.length === 0) {
+        console.error('No Indian stocks were successfully analyzed. All stocks failed.');
+        return NextResponse.json(
+          { 
+            assets: [],
+            error: 'All Indian stock requests failed. Check server logs for details.',
+            message: 'Unable to fetch Indian stock data. This may be due to API rate limits or network issues.'
+          },
+          { status: 503 }
+        );
       }
 
       // Sort by overall score
@@ -58,13 +72,28 @@ export async function GET(request: NextRequest) {
 }
 
 async function analyzeStock(symbol: string, name?: string): Promise<Asset> {
-  const [priceData, quote] = await Promise.all([
-    fetchIndianStockData(symbol),
-    getIndianStockQuote(symbol).catch(() => null),
-  ]);
+  // Fetch historical data first (required)
+  const priceData = await fetchIndianStockData(symbol);
 
-  if (priceData.length < 200) {
-    throw new Error(`Insufficient data for ${symbol}`);
+  if (priceData.length < 30) {
+    throw new Error(`Insufficient data for ${symbol}: only ${priceData.length} data points available (minimum 30 required)`);
+  }
+
+  // Try to fetch quote, but don't let it block or fail the entire request
+  let quote = null;
+  try {
+    const quotePromise = getIndianStockQuote(symbol);
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Quote request timeout')), 5000)
+    );
+    
+    quote = await Promise.race([
+      quotePromise,
+      timeoutPromise,
+    ]) as { symbol: string; price: number; change: number; changePercent: number } | null;
+  } catch (error) {
+    // Silently fail - we'll use historical data instead
+    // Quote failures are common with Yahoo Finance for Indian stocks
   }
 
   const technicalIndicators = calculateTechnicalIndicators(priceData);
@@ -72,9 +101,20 @@ async function analyzeStock(symbol: string, name?: string): Promise<Asset> {
   const trend = analyzeTrend(technicalIndicators, priceData);
   const fundamentals = analyzeFundamentals(priceData);
 
-  const currentPrice = quote?.price || priceData[priceData.length - 1].close;
-  const priceChange = quote?.change || 0;
-  const priceChangePercent = quote?.changePercent || 0;
+  // Use quote if available, otherwise calculate from historical data
+  const latestClose = priceData[priceData.length - 1].close;
+  const previousClose = priceData.length > 1 ? priceData[priceData.length - 2].close : latestClose;
+  
+  const currentPrice = quote?.price || latestClose;
+  
+  // Calculate price change from historical data if quote is not available
+  let priceChange = quote?.change ?? 0;
+  let priceChangePercent = quote?.changePercent ?? 0;
+  
+  if (!quote && priceData.length > 1) {
+    priceChange = currentPrice - previousClose;
+    priceChangePercent = previousClose > 0 ? (priceChange / previousClose) * 100 : 0;
+  }
 
   const asset: Asset = {
     symbol: quote?.symbol || symbol,
