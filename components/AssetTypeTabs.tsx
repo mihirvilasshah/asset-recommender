@@ -16,15 +16,15 @@ export default function AssetTypeTabs({ selectedType, onTypeChange }: AssetTypeT
   ];
 
   return (
-    <div className="flex space-x-2 mb-6 border-b border-gray-200">
+    <div className="flex space-x-2 mb-6 border-b border-gray-200 dark:border-gray-700">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTypeChange(tab.id)}
           className={`px-4 py-2 font-medium text-sm transition-colors ${
             selectedType === tab.id
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
           }`}
         >
           {tab.label}

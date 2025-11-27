@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'Asset Recommender',
@@ -12,8 +13,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="antialiased">{children}</body>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const theme = localStorage.getItem('theme') || 'dark';
+                document.documentElement.classList.toggle('dark', theme === 'dark');
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="antialiased">
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
