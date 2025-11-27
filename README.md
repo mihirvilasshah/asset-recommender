@@ -47,9 +47,9 @@ COINGECKO_API_KEY=your_coingecko_api_key_here (optional)
 - **Alpha Vantage**: Get a free API key at [https://www.alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key)
 - **CoinGecko Demo API**: 
   - Sign up for a free CoinGecko account at [https://www.coingecko.com/en/api](https://www.coingecko.com/en/api)
-  - Navigate to the [Developer's Dashboard](https://www.coingecko.com/en/api/dashboard)
+  - Navigate to the [Developer's Dashboard](https://www.coingecko.com/en/developers/dashboard)
   - Click "+ Add New Key" to generate a Demo API key
-  - Add the key to your `.env.local` file as `COINGECKO_API_KEY`
+  - Add the key to your `.env.local` file as `COINGECKO_API_KEY` 
   - See the [User Guide](https://support.coingecko.com/hc/en-us/articles/21880397454233-User-Guide-How-to-sign-up-for-CoinGecko-Demo-API-and-generate-an-API-key) for detailed instructions
 
 ### Running the Development Server
